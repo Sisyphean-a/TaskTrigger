@@ -1,0 +1,21 @@
+schema_version: 1
+goal: figma-ui-alignment
+status: complete
+objective: 以 Figma 节点 38:2 为唯一视觉基准，将 TaskTrigger 的现有 Android 界面逐项对齐。
+start_point: 应用功能已完成，但任务列表、任务编辑和执行日志页面与最新 Figma 设计存在视觉差距。
+acceptance:
+  - 任务列表、新建任务、编辑任务和执行日志在 360dp 宽度下与 Figma 节点 38:2 的层级、尺寸、间距、颜色、圆角和字级一致。
+  - 现有创建、编辑、启停、立即执行、删除和日志查看行为保持可用。
+  - Android 单元测试与 Debug 构建通过。
+non_goals:
+  - 不修改任务调度、命令执行、数据存储和 Root 能力的业务规则。
+  - 不将 Figma 中的示例数据写入产品数据层。
+budget:
+  kind: owner-defined
+  limit: 以 Figma 节点 38:2 完成 UI 对齐并通过独立功能验收。
+current_iteration: 4
+next_action: 已完成。
+blocker_signature: null
+blocker_count: 0
+owner_stop: null
+updated_at: '2026-07-16'

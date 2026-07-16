@@ -1,34 +1,32 @@
 package com.tasktrigger.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.FilterListOff
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,11 +47,15 @@ internal fun GlobalLogsScreen(
     onBack: () -> Unit,
     onCreate: () -> Unit,
 ) {
-    LogScreenFrame(title = "执行日志", onBack = onBack, showClear = true) {
-        Text("最近执行", color = TaskMutedText, fontSize = 17.sp, modifier = Modifier.padding(top = 22.dp, bottom = 18.dp))
-        HorizontalDivider(color = TaskDivider)
+    LogScreenFrame(title = "执行日志", onBack = onBack, showActions = true) {
+        Text(
+            "最近执行",
+            color = TaskMutedText,
+            fontSize = 13.sp,
+            modifier = Modifier.height(32.dp).padding(start = 20.dp),
+        )
         GlobalLogList(logs, modifier = Modifier.weight(1f))
-        LogsBottomBar(onCreate)
+        TaskFooterActions(onLogs = {}, onCreate = onCreate)
     }
 }
 
@@ -64,8 +66,12 @@ internal fun TaskLogsScreen(
     onBack: () -> Unit,
 ) {
     LogScreenFrame(title = task.name, onBack = onBack) {
-        Text("任务日志", color = TaskMutedText, fontSize = 17.sp, modifier = Modifier.padding(top = 22.dp, bottom = 18.dp))
-        HorizontalDivider(color = TaskDivider)
+        Text(
+            "任务日志",
+            color = TaskMutedText,
+            fontSize = 13.sp,
+            modifier = Modifier.height(32.dp).padding(start = 20.dp),
+        )
         TaskLogList(logs, modifier = Modifier.weight(1f))
     }
 }
@@ -74,31 +80,42 @@ internal fun TaskLogsScreen(
 private fun LogScreenFrame(
     title: String,
     onBack: () -> Unit,
-    showClear: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
+    showActions: Boolean = false,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxHeight()
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp),
+            .navigationBarsPadding(),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(94.dp),
+                .height(51.dp)
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                TaskIcon(Icons.AutoMirrored.Outlined.ArrowBack, "返回", modifier = Modifier.size(33.dp))
+            IconButton(onClick = onBack, modifier = Modifier.size(22.dp)) {
+                TaskIcon(Icons.AutoMirrored.Outlined.ArrowBack, "返回", modifier = Modifier.size(22.dp))
             }
-            Spacer(Modifier.width(22.dp))
-            Text(title, color = TaskText, fontSize = 26.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.weight(1f))
-            if (showClear) {
-                IconButton(onClick = {}, modifier = Modifier.size(48.dp)) {
-                    TaskIcon(Icons.Outlined.FilterListOff, "清除筛选", modifier = Modifier.size(30.dp))
+            Spacer(Modifier.size(12.dp))
+            Text(
+                title,
+                color = TaskText,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (showActions) {
+                IconButton(onClick = {}, modifier = Modifier.size(20.dp)) {
+                    TaskIcon(Icons.Outlined.MoreVert, "更多", tint = TaskMutedText, modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.size(12.dp))
+                IconButton(onClick = onBack, modifier = Modifier.size(20.dp)) {
+                    TaskIcon(Icons.Outlined.Close, "关闭", tint = TaskMutedText, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -112,7 +129,11 @@ private fun GlobalLogList(logs: List<ExecutionLogSummary>, modifier: Modifier) {
         EmptyLogs(modifier)
         return
     }
-    LazyColumn(modifier = modifier) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, bottom = 12.dp),
+    ) {
         items(logs, key = ExecutionLogSummary::id) { log ->
             LogItem(LogRow(log.taskName, log.executedAt, log.success, log.durationMs, log.output))
         }
@@ -125,7 +146,11 @@ private fun TaskLogList(logs: List<ExecutionLogEntity>, modifier: Modifier) {
         EmptyLogs(modifier)
         return
     }
-    LazyColumn(modifier = modifier) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, bottom = 12.dp),
+    ) {
         items(logs, key = ExecutionLogEntity::id) { log ->
             LogItem(LogRow(null, log.executedAt, log.success, log.durationMs, log.output))
         }
@@ -135,67 +160,65 @@ private fun TaskLogList(logs: List<ExecutionLogEntity>, modifier: Modifier) {
 @Composable
 private fun EmptyLogs(modifier: Modifier) {
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Text("暂无执行记录", color = TaskMutedText, fontSize = 18.sp)
+        Text("暂无执行记录", color = TaskMutedText, fontSize = 14.sp)
     }
 }
 
 @Composable
 private fun LogItem(log: LogRow) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp)) {
-        Row(verticalAlignment = Alignment.Top) {
-            Box(
-                modifier = Modifier
-                    .padding(top = 9.dp, end = 24.dp)
-                    .size(17.dp)
-                    .background(if (log.success) TaskAccent else TaskError, androidx.compose.foundation.shape.CircleShape),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                log.taskName?.let { Text(it, color = TaskText, fontSize = 22.sp) }
-                Spacer(Modifier.height(if (log.taskName == null) 0.dp else 12.dp))
-                Text(logTime(log.executedAt), color = TaskMutedText, fontSize = 16.sp)
-                Text(
-                    text = log.output,
-                    color = TaskMutedText,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 15.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-            }
-            Text(
-                text = "${if (log.success) "成功" else "失败"} · ${log.durationMs}ms",
-                color = TaskText,
-                fontSize = 16.sp,
-            )
-        }
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(101.dp)
+            .background(TaskSurface, shape)
+            .border(1.dp, TaskDivider, shape)
+            .padding(horizontal = 17.dp, vertical = 15.dp),
+    ) {
+        LogCardHeader(log)
+        LogCardDetails(log)
     }
-    HorizontalDivider(color = TaskDivider)
 }
 
 @Composable
-private fun LogsBottomBar(onCreate: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .padding(top = 14.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(modifier = Modifier.width(90.dp).height(3.dp).background(TaskAccent, androidx.compose.foundation.shape.CircleShape))
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TaskIcon(Icons.AutoMirrored.Outlined.Article, null, tint = TaskAccent, modifier = Modifier.size(27.dp))
-                Spacer(Modifier.width(9.dp))
-                Text("日志", color = TaskAccent, fontSize = 18.sp)
-            }
-        }
-        TaskPrimaryButton(
-            text = "新建任务",
-            onClick = onCreate,
-            modifier = Modifier.width(154.dp),
-            icon = Icons.Outlined.Add,
+private fun LogCardHeader(log: LogRow) {
+    Row(modifier = Modifier.fillMaxWidth().height(23.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .padding(top = 3.dp)
+                .size(10.dp)
+                .background(if (log.success) TaskAccent else TaskError, RoundedCornerShape(5.dp)),
+        )
+        Spacer(Modifier.size(12.dp))
+        Text(
+            log.taskName ?: "执行结果",
+            color = TaskText,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "${if (log.success) "成功" else "失败"} · ${log.durationMs}ms",
+            color = if (log.success) TaskAccent else TaskError,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun LogCardDetails(log: LogRow) {
+    Column(modifier = Modifier.padding(start = 22.dp)) {
+        Text(logTime(log.executedAt), color = TaskMutedText, fontSize = 12.sp)
+        Text(
+            log.output,
+            color = TaskSubtleText,
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
