@@ -1,6 +1,6 @@
 schema_version: 1
 goal: tasktrigger-mvp
-status: active
+status: complete
 objective: 完成需求文档定义的 TaskTrigger Android MVP。
 start_point: 仓库仅有产品需求文档和 CodeStable 工作流骨架，尚无 Android 工程或业务代码。
 acceptance:
@@ -15,8 +15,8 @@ non_goals:
 budget:
   kind: owner-defined
   limit: 完成全部当前 MVP 工作
-current_iteration: 3
-next_action: 对最终修复进行终端功能验收。
+current_iteration: 4
+next_action: 已完成。
 blocker_signature: null
 blocker_count: 0
 owner_stop: null
