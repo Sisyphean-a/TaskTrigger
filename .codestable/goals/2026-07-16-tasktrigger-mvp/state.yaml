@@ -1,0 +1,23 @@
+schema_version: 1
+goal: tasktrigger-mvp
+status: active
+objective: 完成需求文档定义的 TaskTrigger Android MVP。
+start_point: 仓库仅有产品需求文档和 CodeStable 工作流骨架，尚无 Android 工程或业务代码。
+acceptance:
+  - 可构建并安装 Android 应用。
+  - 可创建、编辑、删除并启用或停用单次和周期任务。
+  - 启用任务在应用退出后仍由 AlarmManager 触发执行，并写入执行日志。
+  - 支持普通和 Root 命令执行、立即测试执行以及开机恢复。
+  - 界面符合深色极客工具风格，且不使用常驻服务、悬浮窗或无障碍服务。
+non_goals:
+  - JSON 导入导出、ADB Shell、Shizuku 和自动模式选择等文档中标注为后续阶段的能力。
+  - 云同步、账号、广告、后台监控服务及无障碍自动化。
+budget:
+  kind: owner-defined
+  limit: 完成全部当前 MVP 工作
+current_iteration: 0
+next_action: 创建可构建的 Android 工程并实现领域模型与持久化基础。
+blocker_signature: null
+blocker_count: 0
+owner_stop: null
+updated_at: '2026-07-16'
