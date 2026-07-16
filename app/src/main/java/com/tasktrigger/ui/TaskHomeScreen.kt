@@ -1,11 +1,6 @@
 package com.tasktrigger.ui
 
-import android.app.AlarmManager
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,34 +11,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.unit.sp
 import com.tasktrigger.data.TaskEntity
 
 internal data class HomeUiState(
@@ -60,11 +51,7 @@ internal data class HomeCallbacks(
 )
 
 @Composable
-internal fun TaskHomeScreen(
-    state: HomeUiState,
-    callbacks: HomeCallbacks,
-) {
-    val exactAlarmAllowed = rememberExactAlarmPermission()
+internal fun TaskHomeScreen(state: HomeUiState, callbacks: HomeCallbacks) {
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -72,9 +59,8 @@ internal fun TaskHomeScreen(
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),
     ) {
-        HomeHeader()
+        HomeHeader(onLogs = callbacks.onLogs)
         RootStatusLine(state.rootStatus)
-        if (!exactAlarmAllowed) ExactAlarmPermissionRow()
         state.statusMessage?.let { StatusMessage(it) }
         HorizontalDivider(color = TaskDivider)
         TaskList(
@@ -88,27 +74,41 @@ internal fun TaskHomeScreen(
 }
 
 @Composable
-private fun HomeHeader() {
+private fun HomeHeader(onLogs: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 20.dp, bottom = 22.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(top = 26.dp, bottom = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("任务", style = MaterialTheme.typography.headlineLarge)
-        Text("≡", color = TaskMutedText, style = MaterialTheme.typography.headlineMedium)
+        Text("任务", color = TaskText, fontSize = 28.sp, style = MaterialTheme.typography.headlineLarge)
+        Spacer(Modifier.weight(1f))
+        IconButton(onClick = onLogs) { TaskIcon(Icons.AutoMirrored.Outlined.Article, "日志") }
+        Spacer(Modifier.width(12.dp))
+        IconButton(onClick = {}, enabled = false) {
+            TaskIcon(Icons.Outlined.Settings, "设置", tint = TaskText)
+        }
     }
 }
 
 @Composable
 private fun RootStatusLine(rootStatus: String) {
-    val granted = rootStatus.contains("已授权")
-    val label = if (granted) "ROOT  已授权 · uid=0" else "ROOT  未授权"
-    Row(modifier = Modifier.padding(bottom = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("●", color = if (granted) TaskStatusGreen else TaskAccent)
-        Spacer(Modifier.padding(start = 8.dp))
-        Text(label, color = TaskMutedText, style = MaterialTheme.typography.labelMedium)
+    val granted = rootStatus.contains("已授权") || rootStatus.contains("uid=0")
+    Row(
+        modifier = Modifier.padding(bottom = 22.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(14.dp)
+                .background(if (granted) TaskStatusGreen else TaskAccent, androidx.compose.foundation.shape.CircleShape),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = if (granted) "ROOT  已授权 · uid=0" else "ROOT  未授权",
+            color = TaskMutedText,
+            fontSize = 16.sp,
+        )
     }
 }
 
@@ -127,17 +127,17 @@ private fun TaskList(
     tasks: List<TaskEntity>,
     onEdit: (TaskEntity) -> Unit,
     onToggle: (TaskEntity, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier,
 ) {
     if (tasks.isEmpty()) {
         Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("暂无任务", color = TaskMutedText, style = MaterialTheme.typography.bodyLarge)
+            Text("暂无任务", color = TaskMutedText, fontSize = 18.sp)
         }
         return
     }
-    LazyColumn(modifier = modifier, contentPadding = PaddingValues(bottom = 12.dp)) {
+    LazyColumn(modifier = modifier, contentPadding = PaddingValues(bottom = 10.dp)) {
         items(tasks, key = TaskEntity::id) { task ->
-            TaskListItem(task = task, onEdit = { onEdit(task) }, onToggle = { onToggle(task, it) })
+            TaskListItem(task, onEdit = { onEdit(task) }, onToggle = { onToggle(task, it) })
         }
     }
 }
@@ -148,38 +148,34 @@ private fun TaskListItem(task: TaskEntity, onEdit: () -> Unit, onToggle: (Boolea
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onEdit)
-            .padding(vertical = 22.dp),
+            .padding(vertical = 27.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = ">_",
-                color = if (task.enabled) TaskAccent else TaskMutedText,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(end = 18.dp),
-            )
+            TerminalPrompt(enabled = task.enabled, modifier = Modifier.width(54.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(task.name, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(8.dp))
-                Text(taskScheduleText(task), color = TaskMutedText, style = MaterialTheme.typography.bodyMedium)
+                Text(task.name, color = TaskText, fontSize = 22.sp)
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TaskIcon(
+                        Icons.Outlined.CalendarMonth,
+                        null,
+                        tint = TaskMutedText,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(taskScheduleText(task), color = TaskMutedText, fontSize = 15.sp)
+                }
             }
-            Switch(
-                checked = task.enabled,
-                onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = TaskAccent,
-                    checkedTrackColor = TaskAccent.copy(alpha = 0.45f),
-                    uncheckedThumbColor = Color(0xFFB6BDB9),
-                    uncheckedTrackColor = Color(0xFF38413D),
-                ),
-            )
+            TaskSwitch(task.enabled, onToggle)
         }
         Text(
             text = commandSummary(task.command),
             color = TaskMutedText,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 15.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 42.dp, top = 13.dp),
+            modifier = Modifier.padding(start = 54.dp, top = 16.dp),
         )
     }
     HorizontalDivider(color = TaskDivider)
@@ -190,56 +186,26 @@ private fun HomeBottomBar(onLogs: () -> Unit, onCreate: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .height(72.dp)
+            .padding(top = 14.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = onLogs) {
-            Text("▤  日志", color = TaskText, style = MaterialTheme.typography.titleMedium)
-        }
-        Button(
-            onClick = onCreate,
-            colors = ButtonDefaults.buttonColors(containerColor = TaskAccent, contentColor = TaskBackground),
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onLogs)
+                .padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("＋  新建任务", style = MaterialTheme.typography.titleMedium)
+            TaskIcon(Icons.AutoMirrored.Outlined.Article, null, tint = TaskText, modifier = Modifier.size(27.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("日志", color = TaskText, fontSize = 18.sp)
         }
+        TaskPrimaryButton(
+            text = "新建任务",
+            onClick = onCreate,
+            modifier = Modifier.width(154.dp),
+            icon = Icons.Outlined.Add,
+        )
     }
-}
-
-@Composable
-private fun ExactAlarmPermissionRow() {
-    val context = LocalContext.current
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("精确定时权限未开启", color = TaskAccent, style = MaterialTheme.typography.bodyMedium)
-        TextButton(onClick = { requestExactAlarmPermission(context) }) { Text("授权", color = TaskAccent) }
-    }
-}
-
-@Composable
-private fun rememberExactAlarmPermission(): Boolean {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val manager = remember { context.getSystemService(AlarmManager::class.java) }
-    var allowed by remember { mutableStateOf(canScheduleExactAlarms(manager)) }
-    DisposableEffect(lifecycleOwner, manager) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) allowed = canScheduleExactAlarms(manager)
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    return allowed
-}
-
-private fun canScheduleExactAlarms(manager: AlarmManager?): Boolean =
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.S || manager?.canScheduleExactAlarms() == true
-
-private fun requestExactAlarmPermission(context: Context) {
-    context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-        data = Uri.parse("package:${context.packageName}")
-    })
 }

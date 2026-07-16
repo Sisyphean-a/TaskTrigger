@@ -10,8 +10,13 @@ import java.time.format.DateTimeFormatter
 internal fun taskScheduleText(task: TaskEntity): String {
     val time = Instant.ofEpochMilli(task.triggerAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))
     if (task.repeatDays.isBlank()) return "单次 · $time"
-    val days = task.repeatDays.split(',').mapNotNull(String::toIntOrNull).map { "周$it" }
-    return "${days.joinToString("、")} · $time"
+    val days = task.repeatDays.split(',').mapNotNull(String::toIntOrNull).sorted()
+    val period = when (days) {
+        listOf(1, 2, 3, 4, 5) -> "工作日"
+        listOf(1, 2, 3, 4, 5, 6, 7) -> "每天"
+        else -> days.joinToString("、") { "周$it" }
+    }
+    return "$period · $time"
 }
 
 internal fun commandSummary(command: String): String = command.lineSequence().firstOrNull().orEmpty()

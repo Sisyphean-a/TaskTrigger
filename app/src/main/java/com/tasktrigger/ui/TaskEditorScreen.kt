@@ -1,27 +1,31 @@
 package com.tasktrigger.ui
 
+import android.app.TimePickerDialog
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,16 +36,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tasktrigger.data.TaskEntity
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-private data class TaskDraft(
+internal data class TaskDraft(
     val name: String,
     val command: String,
     val time: String,
@@ -66,23 +72,21 @@ private data class EditorContentState(
 )
 
 @Composable
-internal fun TaskEditorScreen(
-    task: TaskEntity?,
-    callbacks: EditorCallbacks,
-) {
+internal fun TaskEditorScreen(task: TaskEntity?, callbacks: EditorCallbacks) {
     val taskKey = task?.id
     var draft by remember(taskKey) { mutableStateOf(task.toDraft()) }
     var error by remember(taskKey) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(taskKey) { mutableStateOf(false) }
     val savedTask = task?.takeIf { it.id > 0 }
     val state = EditorContentState(task, draft, error, savedTask) { value ->
-            val triggerAt = parseTriggerAt(value.time)
-            error = validateTaskInput(value, triggerAt)
-            if (error == null) callbacks.onSave(taskEntity(task, value, triggerAt!!))
-        }
-    val contentCallbacks = callbacks.copy(onDelete = { confirmDelete = true })
-    EditorContent(state, contentCallbacks) { draft = it }
-    if (confirmDelete && savedTask != null) DeleteConfirmation({ confirmDelete = false }) { callbacks.onDelete(savedTask) }
+        val triggerAt = parseTriggerAt(value.time)
+        error = validateTaskInput(value, triggerAt)
+        if (error == null) callbacks.onSave(taskEntity(task, value, triggerAt!!))
+    }
+    EditorContent(state, callbacks.copy(onDelete = { confirmDelete = true }), onDraftChange = { draft = it })
+    if (confirmDelete && savedTask != null) {
+        DeleteConfirmation(onDismiss = { confirmDelete = false }) { callbacks.onDelete(savedTask) }
+    }
 }
 
 @Composable
@@ -92,147 +96,93 @@ private fun EditorContent(
     onDraftChange: (TaskDraft) -> Unit,
 ) {
     Column(
-        modifier = Modifier.statusBarsPadding().navigationBarsPadding().imePadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+        modifier = Modifier
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp),
     ) {
-        EditorTopBar(state.task == null, callbacks.onBack)
+        EditorTopBar(state.task == null, callbacks.onBack) { state.onSaveDraft(state.draft) }
         EditorFields(state.draft, onDraftChange)
         EditorActions(state.savedTask, callbacks)
-        state.error?.let { Text(it, color = TaskAccent, modifier = Modifier.padding(top = 16.dp)) }
-        Spacer(Modifier.height(28.dp))
+        state.error?.let { Text(it, color = TaskAccent, fontSize = 15.sp, modifier = Modifier.padding(top = 12.dp)) }
+        Spacer(Modifier.height(20.dp))
         EditorSaveButton(state)
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(22.dp))
     }
 }
 
 @Composable
-private fun EditorFields(draft: TaskDraft, onDraftChange: (TaskDraft) -> Unit) {
-    EditorTextRow("任务名称", draft.name) { onDraftChange(draft.copy(name = it)) }
-    EditorTextRow("执行时间", draft.time, "yyyy-MM-dd HH:mm") { onDraftChange(draft.copy(time = it)) }
-    EditorTextRow("执行周期", draft.repeatDays, "留空为单次；1-7 用逗号分隔") { onDraftChange(draft.copy(repeatDays = it)) }
-    CommandEditor(draft.command) { onDraftChange(draft.copy(command = it)) }
-    RootModeRow(draft.useRoot) { onDraftChange(draft.copy(useRoot = it)) }
+private fun EditorTopBar(isNew: Boolean, onBack: () -> Unit, onSave: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack, modifier = Modifier.width(48.dp)) {
+            TaskIcon(Icons.AutoMirrored.Outlined.ArrowBack, "返回", modifier = Modifier.width(32.dp))
+        }
+        Spacer(Modifier.width(24.dp))
+        Text(if (isNew) "新建任务" else "编辑任务", color = TaskText, fontSize = 24.sp)
+        Spacer(Modifier.weight(1f))
+        TextButton(onClick = onSave) { Text("保存", color = TaskAccent, fontSize = 20.sp) }
+    }
+    HorizontalDivider(color = TaskDivider)
 }
 
 @Composable
-private fun EditorActions(
-    task: TaskEntity?,
-    callbacks: EditorCallbacks,
-) {
-    ExecuteButton(task, callbacks.onExecute)
-    task?.let { ExistingTaskActions({ callbacks.onLogs(it) }, { callbacks.onDelete(it) }) }
+private fun EditorActions(task: TaskEntity?, callbacks: EditorCallbacks) {
+    TaskOutlineButton(
+        text = "立即执行",
+        onClick = { task?.let(callbacks.onExecute) },
+        enabled = task != null,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    task?.let {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            TaskOutlineButton("查看日志", { callbacks.onLogs(it) }, Modifier.weight(1f), Icons.AutoMirrored.Outlined.Article)
+            TaskOutlineButton("删除任务", { callbacks.onDelete(it) }, Modifier.weight(1f), Icons.Outlined.DeleteOutline)
+        }
+    }
 }
 
 @Composable
 private fun EditorSaveButton(state: EditorContentState) {
-    SaveButton(state.task == null) { state.onSaveDraft(state.draft) }
-}
-
-@Composable
-private fun EditorTopBar(isNew: Boolean, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 20.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(onClick = onBack) { Text("‹", color = TaskText, style = MaterialTheme.typography.headlineLarge) }
-        Text(if (isNew) "新建任务" else "编辑任务", style = MaterialTheme.typography.headlineSmall)
-        Text("保存", color = TaskAccent, style = MaterialTheme.typography.titleLarge)
-    }
-    HorizontalDivider(color = TaskDivider)
-}
-
-@Composable
-private fun EditorTextRow(label: String, value: String, hint: String = "", onValueChange: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 19.dp)) {
-        Text(label, color = TaskMutedText, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(8.dp))
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle = TextStyle(color = TaskText, fontSize = MaterialTheme.typography.bodyLarge.fontSize),
-            cursorBrush = SolidColor(TaskAccent),
-            modifier = Modifier.fillMaxWidth(),
-            decorationBox = { input ->
-                if (value.isBlank() && hint.isNotBlank()) Text(hint, color = TaskMutedText)
-                input()
-            },
-        )
-    }
-    HorizontalDivider(color = TaskDivider)
-}
-
-@Composable
-private fun CommandEditor(command: String, onValueChange: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 16.dp)) {
-        Text("执行命令", color = TaskMutedText, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(12.dp))
-        BasicTextField(
-            value = command,
-            onValueChange = onValueChange,
-            textStyle = TextStyle(color = TaskText, fontFamily = FontFamily.Monospace, fontSize = MaterialTheme.typography.bodyMedium.fontSize),
-            cursorBrush = SolidColor(TaskAccent),
-            modifier = Modifier.fillMaxWidth().height(188.dp).padding(14.dp),
-            decorationBox = { input ->
-                if (command.isBlank()) Text("请输入 Shell 命令", color = TaskMutedText, fontFamily = FontFamily.Monospace)
-                input()
-            },
-        )
-        HorizontalDivider(color = TaskDivider)
-        Text("Shell command", color = TaskMutedText, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-@Composable
-private fun RootModeRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column {
-            Text("Root 模式", style = MaterialTheme.typography.titleMedium)
-            Text("使用 su -c 执行", color = TaskMutedText, style = MaterialTheme.typography.bodyMedium)
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedThumbColor = TaskAccent, checkedTrackColor = TaskAccent.copy(alpha = 0.45f)),
-        )
-    }
-}
-
-@Composable
-private fun ExecuteButton(task: TaskEntity?, onExecute: (TaskEntity) -> Unit) {
-    OutlinedButton(
-        onClick = { task?.let(onExecute) },
-        enabled = task != null,
-        border = BorderStroke(1.dp, if (task == null) TaskDivider else TaskAccent),
+    TaskPrimaryButton(
+        text = if (state.task == null) "保存并启用" else "保存修改",
+        onClick = { state.onSaveDraft(state.draft) },
         modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (task == null) TaskMutedText else TaskText),
-    ) {
-        Text(">_  立即执行", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 6.dp))
-    }
-    if (task == null) Text("保存后可执行", color = TaskMutedText, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 7.dp))
+    )
 }
 
 @Composable
-private fun ExistingTaskActions(onLogs: () -> Unit, onDelete: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onLogs, modifier = Modifier.weight(1f), border = BorderStroke(1.dp, TaskDivider)) { Text("▤  查看日志") }
-        OutlinedButton(onClick = onDelete, modifier = Modifier.weight(1f), border = BorderStroke(1.dp, TaskDivider)) { Text("⌫  删除任务") }
-    }
-}
-
-@Composable
-private fun SaveButton(isNew: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = TaskAccent, contentColor = TaskBackground),
-    ) {
-        Text(if (isNew) "保存并启用" else "保存修改", modifier = Modifier.padding(vertical = 8.dp), style = MaterialTheme.typography.titleLarge)
-    }
+internal fun PeriodPicker(value: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var selected by remember(value) { mutableStateOf(value.split(',').mapNotNull(String::toIntOrNull).toSet()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("执行周期") },
+        text = {
+            Column {
+                val days = listOf("一" to 1, "二" to 2, "三" to 3, "四" to 4, "五" to 5, "六" to 6, "日" to 7)
+                days.chunked(4).forEach { row ->
+                    Row {
+                        row.forEach { (label, day) ->
+                            TextButton(onClick = { selected = selected.toggle(day) }) {
+                                Text("周$label", color = if (day in selected) TaskAccent else TaskText)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(selected.sorted().joinToString(",")) }) { Text("确定", color = TaskAccent) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }
 
 @Composable
@@ -245,6 +195,8 @@ private fun DeleteConfirmation(onDismiss: () -> Unit, onConfirm: () -> Unit) {
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
     )
 }
+
+private fun Set<Int>.toggle(day: Int): Set<Int> = if (day in this) this - day else this + day
 
 private fun TaskEntity?.toDraft(): TaskDraft = TaskDraft(
     name = this?.name.orEmpty(),

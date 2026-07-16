@@ -9,13 +9,18 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 
-internal val TaskBackground = Color(0xFF0C1211)
-internal val TaskSurface = Color(0xFF171E1C)
-internal val TaskText = Color(0xFFE8ECE7)
-internal val TaskMutedText = Color(0xFF9CA6A1)
-internal val TaskDivider = Color(0xFF34403C)
-internal val TaskAccent = Color(0xFFFF6B35)
-internal val TaskStatusGreen = Color(0xFF31C56A)
+internal val TaskBackground = Color(0xFF07100E)
+internal val TaskSurface = Color(0xFF0E1A17)
+internal val TaskText = Color(0xFFF0F2EF)
+internal val TaskMutedText = Color(0xFFA7ADAA)
+internal val TaskDivider = Color(0xFF31403B)
+internal val TaskAccent = Color(0xFFFF5A1F)
+internal val TaskAccentDeep = Color(0xFFFF4B19)
+internal val TaskButtonText = Color(0xFFFFFFFF)
+internal val TaskStatusGreen = Color(0xFF32C86B)
+internal val TaskSwitchOff = Color(0xFF3D4643)
+internal val TaskError = Color(0xFFFF4A42)
+internal val TaskGlow = Color(0xFF0B2019)
 
 @Composable
 internal fun TaskTriggerTheme(content: @Composable () -> Unit) {
@@ -29,11 +34,13 @@ internal fun TaskTriggerTheme(content: @Composable () -> Unit) {
         error = TaskAccent,
     )
     val typography = Typography(
-        headlineLarge = TextStyle(fontWeight = FontWeight.Bold),
-        titleLarge = TextStyle(fontWeight = FontWeight.SemiBold),
-        bodyLarge = TextStyle(fontWeight = FontWeight.Medium),
+        headlineLarge = TextStyle(fontWeight = FontWeight.SemiBold),
+        headlineSmall = TextStyle(fontWeight = FontWeight.SemiBold),
+        titleLarge = TextStyle(fontWeight = FontWeight.Medium),
+        titleMedium = TextStyle(fontWeight = FontWeight.Medium),
+        bodyLarge = TextStyle(fontWeight = FontWeight.Normal),
         bodyMedium = TextStyle(fontWeight = FontWeight.Normal),
-        labelMedium = TextStyle(fontWeight = FontWeight.Medium),
+        labelMedium = TextStyle(fontWeight = FontWeight.Normal),
         bodySmall = TextStyle(fontFamily = FontFamily.Monospace),
     )
     MaterialTheme(colorScheme = colors, typography = typography, content = content)

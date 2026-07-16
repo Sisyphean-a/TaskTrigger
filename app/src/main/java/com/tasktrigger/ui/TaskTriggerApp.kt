@@ -1,6 +1,7 @@
 package com.tasktrigger.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.tasktrigger.data.TaskEntity
 
 private sealed class TaskScreen {
@@ -27,9 +29,21 @@ internal fun TaskTriggerApp(viewModel: TaskViewModel) {
     var rootStatus by remember { mutableStateOf("Root 状态：检测中…") }
     var screen by remember { mutableStateOf<TaskScreen>(TaskScreen.Home) }
     LaunchedEffect(Unit) { rootStatus = viewModel.rootStatus() }
+    BackHandler(enabled = screen !is TaskScreen.Home) {
+        screen = when (val current = screen) {
+            TaskScreen.Create, TaskScreen.Logs, is TaskScreen.Edit -> TaskScreen.Home
+            is TaskScreen.TaskLogs -> TaskScreen.Edit(current.task)
+            TaskScreen.Home -> TaskScreen.Home
+        }
+    }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = TaskBackground) {
-        when (val current = screen) {
+    TaskScreenBackground {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.Transparent,
+            contentColor = TaskText,
+        ) {
+            when (val current = screen) {
             TaskScreen.Home -> TaskHomeScreen(
                 state = HomeUiState(tasks, rootStatus, statusMessage),
                 callbacks = HomeCallbacks(
@@ -69,6 +83,7 @@ internal fun TaskTriggerApp(viewModel: TaskViewModel) {
                 logs = viewModel.logs(current.task.id).collectAsState(initial = emptyList()).value,
                 onBack = { screen = TaskScreen.Edit(current.task) },
             )
+            }
         }
     }
 }
