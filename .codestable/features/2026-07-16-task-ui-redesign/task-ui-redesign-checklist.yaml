@@ -1,0 +1,53 @@
+feature: 2026-07-16-task-ui-redesign
+created: 2026-07-16
+
+steps:
+  - action: "按第 2.5 节方案拆分 UI 职责，保持 ViewModel 操作语义不变"
+    exit_signal: "活动入口只负责装配，页面组件职责分离，现有领域测试在可用环境中通过"
+    status: pending
+  - action: "静态结构：建立深色主题、任务首页和列表任务行"
+    exit_signal: "固定设备截图可逐项对照 references/home.png 中的系统状态、任务信息、开关和新建入口"
+    status: pending
+  - action: "页面交互：实现全屏编辑页、启停与删除操作入口"
+    exit_signal: "固定设备截图可逐项对照 references/editor.png，且新建、编辑、启停、删除均触达原有 ViewModel 方法"
+    status: pending
+  - action: "执行与日志：新建态禁用立即执行并显示提示；接通已保存任务立即执行及空、成功、失败日志状态"
+    exit_signal: "新建态显示“保存后可执行”且不触发执行；立即执行、删除确认、空日志、成功日志和失败日志均有可观察界面状态"
+    status: pending
+  - action: "状态接入：将任务、Root、权限和调度失败数据接入新界面"
+    exit_signal: "真实数据变化后列表与状态同步刷新，未伪造执行结果"
+    status: pending
+  - action: "小屏与收尾：覆盖空态、长命令、软键盘、未授权和视觉对比度"
+    exit_signal: "验收矩阵中的界面场景均有固定设备截图或命令证据，无关键内容遮挡"
+    status: pending
+
+checks:
+  - item: "不修改 TaskEntity、调度、命令执行或数据库契约（设计 1 节、需求文档 MVP）"
+    source: 范围守护
+    status: pending
+  - item: "任务行可展示名称、时间周期、命令摘要及启停状态（设计 2.1、3 节场景 1）"
+    source: 名词契约
+    status: pending
+  - item: "所有操作继续经由既有 TaskViewModel 调用（设计 2.2 节）"
+    source: 编排骨架
+    status: pending
+  - item: "首页、新建入口、任务行和状态区域均为可卸载挂载点（设计 2.3 节）"
+    source: 挂载点
+    status: pending
+  - item: "覆盖任务列表、新建编辑、多行 Root 命令、立即执行、删除、错误小屏和日志场景（设计 3 节）"
+    source: 验收场景
+    status: pending
+
+dod:
+  commands:
+    - id: CMD-001
+      command: "gradlew.bat testDebugUnitTest"
+      core: true
+      failure_handling: document-baseline
+    - id: CMD-002
+      command: "gradlew.bat assembleDebug"
+      core: true
+      failure_handling: document-baseline
+  evidence_required: [command_output, diff_summary, screenshot]
+  cleanliness:
+    debug_output: forbidden

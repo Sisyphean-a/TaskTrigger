@@ -10,6 +10,8 @@ class TaskRepository(
 
     fun observeLogs(taskId: Long): Flow<List<ExecutionLogEntity>> = logDao.observeForTask(taskId)
 
+    fun observeAllLogs(): Flow<List<ExecutionLogSummary>> = logDao.observeAll()
+
     suspend fun save(task: TaskEntity): TaskEntity {
         val id = if (task.id == 0L) taskDao.insert(task) else {
             taskDao.update(task)

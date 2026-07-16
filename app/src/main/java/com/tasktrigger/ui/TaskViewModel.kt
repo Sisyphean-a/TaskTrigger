@@ -18,6 +18,8 @@ class TaskViewModel(private val container: AppContainer) : ViewModel() {
 
     fun logs(taskId: Long) = container.repository.observeLogs(taskId)
 
+    fun allLogs() = container.repository.observeAllLogs()
+
     fun save(task: TaskEntity) = viewModelScope.launch(Dispatchers.IO) {
         val saved = container.repository.save(task)
         if (saved.enabled) publishScheduleResult(container.scheduler.schedule(saved)) else container.scheduler.cancel(saved)
