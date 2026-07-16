@@ -15,8 +15,8 @@ non_goals:
 budget:
   kind: owner-defined
   limit: 完成全部当前 MVP 工作
-current_iteration: 1
-next_action: 进行独立代码审查和终端功能验收。
+current_iteration: 2
+next_action: 进行修复后的终端功能验收。
 blocker_signature: null
 blocker_count: 0
 owner_stop: null

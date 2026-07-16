@@ -65,6 +65,7 @@ private fun TaskTriggerTheme(content: @Composable () -> Unit) {
 @Composable
 private fun TaskTriggerScreen(viewModel: TaskViewModel) {
     val tasks by viewModel.tasks.collectAsState()
+    val statusMessage by viewModel.statusMessage.collectAsState()
     var editing by remember { mutableStateOf<TaskEntity?>(null) }
     var creating by remember { mutableStateOf(false) }
     var logTask by remember { mutableStateOf<TaskEntity?>(null) }
@@ -72,6 +73,7 @@ private fun TaskTriggerScreen(viewModel: TaskViewModel) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("TASKTRIGGER", style = MaterialTheme.typography.headlineMedium)
             Text("定时执行系统指令", color = Color.LightGray)
+            statusMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             RootStatus(viewModel)
             ExactAlarmPermission()
             Spacer(Modifier.height(16.dp))
@@ -130,10 +132,12 @@ private fun TaskRow(task: TaskEntity, onEdit: () -> Unit, onToggle: (Boolean) ->
 @Composable
 private fun TaskLogs(task: TaskEntity, viewModel: TaskViewModel, onDismiss: () -> Unit) {
     val logs by viewModel.logs(task.id).collectAsState(initial = emptyList())
+    val formatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss") }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("${task.name} 的执行日志") }, text = {
         LazyColumn { items(logs, key = { it.id }) { log ->
             Card(Modifier.padding(vertical = 4.dp)) { Column(Modifier.padding(8.dp)) {
                 Text(if (log.success) "成功 · ${log.durationMs}ms" else "失败 · ${log.durationMs}ms")
+                Text(java.time.Instant.ofEpochMilli(log.executedAt).atZone(ZoneId.systemDefault()).format(formatter))
                 Text(log.output, color = Color.LightGray)
             } }
         } }
@@ -155,6 +159,7 @@ private fun TaskEditor(task: TaskEntity?, onDismiss: () -> Unit, onSave: (TaskEn
             OutlinedTextField(time, { time = it }, label = { Text("时间：yyyy-MM-dd HH:mm") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(repeat, { repeat = it }, label = { Text("周期：留空为单次，1-7 用逗号分隔") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(command, { command = it }, label = { Text("Shell 命令") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+            Text("为遵守 Android 广播生命周期，定时命令最长执行 8 秒。", color = Color.LightGray)
             Row { Checkbox(root, { root = it }); Text("使用 Root（su -c）") }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         }
