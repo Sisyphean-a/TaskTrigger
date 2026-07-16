@@ -93,9 +93,9 @@ private fun TaskTriggerScreen(viewModel: TaskViewModel) {
 
 @Composable
 private fun RootStatus(viewModel: TaskViewModel) {
-    var available by remember { mutableStateOf<Boolean?>(null) }
-    LaunchedEffect(Unit) { available = viewModel.rootAvailable() }
-    Text(when (available) { true -> "Root 状态：已检测到 su"; false -> "Root 状态：未检测到 su"; null -> "Root 状态：检测中…" })
+    var status by remember { mutableStateOf("Root 状态：检测中…") }
+    LaunchedEffect(Unit) { status = viewModel.rootStatus() }
+    Text(status)
 }
 
 @Composable

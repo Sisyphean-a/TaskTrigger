@@ -7,6 +7,16 @@ import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
 class CommandExecutor {
+    fun rootStatus(): String = runCatching {
+        val process = ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start()
+        if (!process.waitFor(ROOT_CHECK_SECONDS, TimeUnit.SECONDS)) {
+            process.destroyForcibly()
+            return "Root 状态：未授权或无响应"
+        }
+        val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText().trim() }
+        if (process.exitValue() == 0 && output.contains("uid=0")) "Root 状态：已授权（$output）" else "Root 状态：未 Root"
+    }.getOrDefault("Root 状态：未 Root")
+
     fun execute(task: TaskEntity): ExecutionLogEntity {
         val startedAt = System.currentTimeMillis()
         return runCatching {
@@ -38,5 +48,8 @@ class CommandExecutor {
         listOf("sh", "-c", task.command)
     }
 
-    private companion object { const val MAX_RECEIVER_SECONDS = 8L }
+    private companion object {
+        const val MAX_RECEIVER_SECONDS = 8L
+        const val ROOT_CHECK_SECONDS = 3L
+    }
 }

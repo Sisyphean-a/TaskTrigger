@@ -34,9 +34,7 @@ class TaskViewModel(private val container: AppContainer) : ViewModel() {
         container.repository.record(container.executor.execute(task))
     }
 
-    suspend fun rootAvailable(): Boolean = withContext(Dispatchers.IO) {
-        runCatching { ProcessBuilder("sh", "-c", "which su").start().waitFor() == 0 }.getOrDefault(false)
-    }
+    suspend fun rootStatus(): String = withContext(Dispatchers.IO) { container.executor.rootStatus() }
 
     private fun publishScheduleResult(result: ScheduleResult) {
         statusMessage.value = (result as? ScheduleResult.Failure)?.message
