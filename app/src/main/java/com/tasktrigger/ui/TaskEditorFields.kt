@@ -158,6 +158,7 @@ private fun CommandEditor(command: String, isNew: Boolean, onValueChange: (Strin
 
 @Composable
 private fun CommandInput(command: String, onValueChange: (String) -> Unit, height: androidx.compose.ui.unit.Dp) {
+    val commandTextStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp, lineHeight = 20.sp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -166,16 +167,16 @@ private fun CommandInput(command: String, onValueChange: (String) -> Unit, heigh
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Text("1\n2", color = TaskSubtleText, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+        Text("1\n2", color = TaskSubtleText, style = commandTextStyle)
         Spacer(Modifier.width(10.dp))
         BasicTextField(
             value = command,
             onValueChange = onValueChange,
-            textStyle = TextStyle(color = TaskText, fontFamily = FontFamily.Monospace, fontSize = 13.sp, lineHeight = 20.sp),
+            textStyle = commandTextStyle.copy(color = TaskText),
             cursorBrush = SolidColor(TaskAccent),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { input ->
-                if (command.isBlank()) Text("请输入 Shell 命令", color = TaskSubtleText, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                if (command.isBlank()) Text("请输入 Shell 命令", color = TaskSubtleText, style = commandTextStyle)
                 input()
             },
         )
