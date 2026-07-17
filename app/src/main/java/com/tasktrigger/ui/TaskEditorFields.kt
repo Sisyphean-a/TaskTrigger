@@ -43,8 +43,7 @@ internal fun EditorFields(
     onDraftChange: (TaskDraft) -> Unit,
 ) {
     EditorNameRow(draft.name) { onDraftChange(draft.copy(name = it)) }
-    EditorTimeRow(draft.time) { onDraftChange(draft.copy(time = it)) }
-    EditorPeriodRow(draft.repeatDays) { onDraftChange(draft.copy(repeatDays = it)) }
+    EditorScheduleFields(draft, onDraftChange)
     CommandEditor(draft.command, isNew) { onDraftChange(draft.copy(command = it)) }
 }
 
@@ -74,7 +73,7 @@ private fun EditorNameRow(value: String, onValueChange: (String) -> Unit) {
 }
 
 @Composable
-private fun EditorTimeRow(time: String, onTimeChange: (String) -> Unit) {
+internal fun EditorTimeRow(time: String, onTimeChange: (String) -> Unit) {
     val context = LocalContext.current
     Row(
         modifier = Modifier
@@ -93,7 +92,7 @@ private fun EditorTimeRow(time: String, onTimeChange: (String) -> Unit) {
 }
 
 @Composable
-private fun EditorPeriodRow(repeatDays: String, onRepeatDaysChange: (String) -> Unit) {
+internal fun EditorPeriodRow(repeatDays: String, onRepeatDaysChange: (String) -> Unit) {
     var showPicker by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier

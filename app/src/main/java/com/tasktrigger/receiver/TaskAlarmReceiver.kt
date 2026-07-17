@@ -16,14 +16,8 @@ class TaskAlarmReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val container = (context.applicationContext as TaskTriggerApplication).container
-                val task = container.repository.findTask(taskId) ?: return@launch
-                if (!task.enabled) return@launch
-                container.repository.record(container.executor.execute(task))
-                if (task.repeatDays.isBlank()) {
-                    container.scheduler.cancel(task)
-                } else {
-                    container.scheduler.schedule(task)
-                }
+                val outcome = container.operations.handleAlarm(taskId)
+                outcome.warnings.firstOrNull()?.let { throw IllegalStateException(it) }
             } finally {
                 pendingResult.finish()
             }

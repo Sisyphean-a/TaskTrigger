@@ -16,8 +16,11 @@ interface ExecutionLogDao {
     @Query(
         """
         SELECT execution_logs.id, execution_logs.taskId, execution_logs.executedAt,
-               execution_logs.success, execution_logs.durationMs, execution_logs.output,
-               COALESCE(tasks.name, '已删除任务') AS taskName
+               execution_logs.durationMs, execution_logs.output, execution_logs.source,
+               execution_logs.stage, execution_logs.status, execution_logs.reasonCode,
+               execution_logs.exitCode, execution_logs.taskNameSnapshot,
+               execution_logs.commandSnapshot,
+               COALESCE(execution_logs.taskNameSnapshot, tasks.name, '已删除任务') AS taskName
         FROM execution_logs
         LEFT JOIN tasks ON tasks.id = execution_logs.taskId
         ORDER BY execution_logs.executedAt DESC

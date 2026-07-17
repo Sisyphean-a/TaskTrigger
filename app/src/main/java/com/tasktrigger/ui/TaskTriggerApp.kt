@@ -18,6 +18,7 @@ private sealed class TaskScreen {
     data object Home : TaskScreen()
     data object Create : TaskScreen()
     data object Logs : TaskScreen()
+    data class Copy(val source: TaskEntity) : TaskScreen()
     data class Edit(val task: TaskEntity) : TaskScreen()
     data class TaskLogs(val task: TaskEntity) : TaskScreen()
 }
@@ -31,7 +32,7 @@ internal fun TaskTriggerApp(viewModel: TaskViewModel) {
     LaunchedEffect(Unit) { rootStatus = viewModel.rootStatus() }
     BackHandler(enabled = screen !is TaskScreen.Home) {
         screen = when (val current = screen) {
-            TaskScreen.Create, TaskScreen.Logs, is TaskScreen.Edit -> TaskScreen.Home
+            TaskScreen.Create, TaskScreen.Logs, is TaskScreen.Copy, is TaskScreen.Edit -> TaskScreen.Home
             is TaskScreen.TaskLogs -> TaskScreen.Edit(current.task)
             TaskScreen.Home -> TaskScreen.Home
         }
@@ -51,6 +52,19 @@ internal fun TaskTriggerApp(viewModel: TaskViewModel) {
                     onEdit = { screen = TaskScreen.Edit(it) },
                     onLogs = { screen = TaskScreen.Logs },
                     onToggle = viewModel::setEnabled,
+                    onCopy = { screen = TaskScreen.Copy(it) },
+                    onDelete = viewModel::delete,
+                ),
+            )
+            is TaskScreen.Copy -> TaskEditorScreen(
+                task = null,
+                copySource = current.source.copySeed(),
+                callbacks = EditorCallbacks(
+                    onBack = { screen = TaskScreen.Home },
+                    onSave = { viewModel.save(it); screen = TaskScreen.Home },
+                    onExecute = {},
+                    onLogs = {},
+                    onDelete = {},
                 ),
             )
             TaskScreen.Create -> TaskEditorScreen(

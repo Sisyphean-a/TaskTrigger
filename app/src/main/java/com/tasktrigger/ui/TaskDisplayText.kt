@@ -2,12 +2,17 @@ package com.tasktrigger.ui
 
 import com.tasktrigger.data.ExecutionLogEntity
 import com.tasktrigger.data.TaskEntity
+import com.tasktrigger.domain.ScheduleMode
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 internal fun taskScheduleText(task: TaskEntity): String {
+    if (task.scheduleMode == ScheduleMode.COUNTDOWN) {
+        val totalMinutes = task.countdownDurationMillis / 60_000
+        return "倒计时 · ${totalMinutes / 60}小时${totalMinutes % 60}分钟"
+    }
     val time = Instant.ofEpochMilli(task.triggerAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"))
     if (task.repeatDays.isBlank()) return "单次 · $time"
     val days = task.repeatDays.split(',').mapNotNull(String::toIntOrNull).sorted()

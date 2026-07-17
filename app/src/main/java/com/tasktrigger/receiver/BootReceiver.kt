@@ -15,7 +15,9 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val container = (context.applicationContext as TaskTriggerApplication).container
-                container.repository.enabledTasks().forEach(container.scheduler::schedule)
+                val warning = container.operations.restoreOnBoot()
+                    .firstNotNullOfOrNull { it.warnings.firstOrNull() }
+                warning?.let { throw IllegalStateException(it) }
             } finally {
                 result.finish()
             }

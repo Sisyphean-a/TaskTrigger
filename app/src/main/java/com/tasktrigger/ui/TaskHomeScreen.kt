@@ -2,7 +2,8 @@ package com.tasktrigger.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,10 +24,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +59,8 @@ internal data class HomeCallbacks(
     val onEdit: (TaskEntity) -> Unit,
     val onLogs: () -> Unit,
     val onToggle: (TaskEntity, Boolean) -> Unit,
+    val onCopy: (TaskEntity) -> Unit,
+    val onDelete: (TaskEntity) -> Unit,
 )
 
 @Composable
@@ -65,6 +78,8 @@ internal fun TaskHomeScreen(state: HomeUiState, callbacks: HomeCallbacks) {
             tasks = state.tasks,
             onEdit = callbacks.onEdit,
             onToggle = callbacks.onToggle,
+            onCopy = callbacks.onCopy,
+            onDelete = callbacks.onDelete,
             modifier = Modifier.weight(1f),
         )
         TaskFooterActions(onLogs = callbacks.onLogs, onCreate = callbacks.onCreate)
@@ -131,6 +146,8 @@ private fun TaskList(
     tasks: List<TaskEntity>,
     onEdit: (TaskEntity) -> Unit,
     onToggle: (TaskEntity, Boolean) -> Unit,
+    onCopy: (TaskEntity) -> Unit,
+    onDelete: (TaskEntity) -> Unit,
     modifier: Modifier,
 ) {
     if (tasks.isEmpty()) {
@@ -145,27 +162,71 @@ private fun TaskList(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(tasks, key = TaskEntity::id) { task ->
-            TaskListItem(task, onEdit = { onEdit(task) }, onToggle = { onToggle(task, it) })
+            TaskListItem(
+                task = task,
+                onEdit = { onEdit(task) },
+                onToggle = { onToggle(task, it) },
+                onCopy = { onCopy(task) },
+                onDelete = { onDelete(task) },
+            )
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TaskListItem(task: TaskEntity, onEdit: () -> Unit, onToggle: (Boolean) -> Unit) {
+private fun TaskListItem(
+    task: TaskEntity,
+    onEdit: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+    onCopy: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(12.dp)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp)
-            .clip(shape)
-            .background(TaskSurface)
-            .border(1.dp, TaskDivider, shape)
-            .clickable(onClick = onEdit)
-            .padding(horizontal = 17.dp, vertical = 15.dp),
-    ) {
-        TaskCardHeader(task, onToggle)
-        TaskCardSchedule(task)
-        TaskCardCommand(task)
+    Box {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp)
+                .clip(shape)
+                .background(TaskSurface)
+                .border(1.dp, TaskDivider, shape)
+                .combinedClickable(onClick = onEdit, onLongClick = { showMenu = true })
+                .padding(horizontal = 17.dp, vertical = 15.dp),
+        ) {
+            TaskCardHeader(task, onToggle)
+            TaskCardSchedule(task)
+            TaskCardCommand(task)
+        }
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            DropdownMenuItem(
+                text = { Text("复制") },
+                leadingIcon = { TaskIcon(Icons.Outlined.ContentCopy, null) },
+                onClick = { showMenu = false; onCopy() },
+            )
+            DropdownMenuItem(
+                text = { Text("删除", color = TaskError) },
+                leadingIcon = { TaskIcon(Icons.Outlined.DeleteOutline, null, tint = TaskError) },
+                onClick = { showMenu = false; confirmDelete = true },
+            )
+        }
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("删除任务？") },
+            text = { Text("该任务会被删除，已有执行日志会保留。") },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text("删除", color = TaskError)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("取消") }
+            },
+        )
     }
 }
 

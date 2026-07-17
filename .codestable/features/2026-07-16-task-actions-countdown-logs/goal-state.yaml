@@ -1,0 +1,76 @@
+feature: "2026-07-16-task-actions-countdown-logs"
+status: blocked
+baseline_ref: "a5ba37ee0658c2974ec661a07f6cae7d76e59f94"
+stage: handoff
+driver_kind: native
+driver_id: "/root/goal_driver"
+handoff_reason: "当前 SDK 没有 connected device、AVD、system image、avdmanager 或 sdkmanager，无法运行 Room 迁移 AndroidTest 和取得核心 UI 截图"
+handoff_next: "连接 API 26+ Android 设备或安装 system image/AVD，运行 connectedDebugAndroidTest 并补首页、编辑页、日志详情截图后，从 implementation gate 恢复"
+design: ".codestable/features/2026-07-16-task-actions-countdown-logs/task-actions-countdown-logs-design.md"
+checklist: ".codestable/features/2026-07-16-task-actions-countdown-logs/task-actions-countdown-logs-checklist.yaml"
+review: ".codestable/features/2026-07-16-task-actions-countdown-logs/task-actions-countdown-logs-review.md"
+qa: ".codestable/features/2026-07-16-task-actions-countdown-logs/task-actions-countdown-logs-qa.md"
+acceptance: ".codestable/features/2026-07-16-task-actions-countdown-logs/task-actions-countdown-logs-acceptance.md"
+ledger:
+  - step: 1
+    status: done
+    exit_signal: "ViewModel、Receiver、BootReceiver 仅调用统一操作服务，旧保存/启停/删除/立即执行 service 测试与现有调度测试通过"
+    red:
+      - "倒计时保存测试因 TaskOperations、Clock、TaskStore、ScheduleMode 与倒计时字段不存在而失败"
+      - "删除顺序测试因 TaskOperations.delete 不存在而失败"
+      - "立即执行测试因 TaskOperations.executeNow 不存在而失败"
+    green: "新增可注入契约和统一 TaskOperations；Repository、ViewModel、Receiver、BootReceiver 接入"
+    verify: "gradlew.bat testDebugUnitTest --tests com.tasktrigger.domain.TaskOperationsTest --tests com.tasktrigger.domain.TaskScheduleTest 通过"
+    cleanliness: "未新增调试输出、TODO/FIXME、注释死码或方案外文件"
+  - step: 2
+    status: done
+    red:
+      - "ExecutionEventTest 因日志来源、阶段、状态、reasonCode 与快照契约不存在而编译失败"
+      - "倒计时溢出测试因错误原因不明确而失败"
+    green: "新增调度模式、结构化命令结果与日志事件契约；倒计时使用注入时钟和溢出安全加法"
+    verify: "ExecutionEventTest 与 TaskOperationsTest 通过"
+  - step: 3
+    status: environment-blocked
+    red: "DatabaseMigrationTest 因 MIGRATION_1_2 不存在而编译失败"
+    green: "Room 真实导出 v1/v2 schema，显式 Migration 注册，AndroidTest 编译通过"
+    verify: "connectedDebugAndroidTest 构建完成后失败：No connected devices"
+  - step: 4
+    status: done
+    red:
+      - "调度失败未回退关闭且未记录 reasonCode"
+      - "重复投递未记录 SKIPPED 日志"
+      - "开机过期任务仍被重新调度"
+      - "日志写入异常阻断每周任务重排"
+    green: "统一保存、启停、删除、原子领取、闹钟处理与开机恢复状态顺序"
+    verify: "TaskOperationsTest 相关场景全部通过"
+  - step: 5
+    status: done
+    red:
+      - "取消失败没有形成 CANCEL_FAILED 日志"
+      - "CommandExecutor 缺少可测进程入口，旧读取顺序无法证明长输出不阻塞"
+    green: "失败/跳过日志覆盖各来源；命令运行期间并发排空输出，超时保留部分输出"
+    verify: "CommandExecutorTest 30000 行输出和超时部分输出测试通过"
+  - step: 6
+    status: done
+    red: "TaskDraftModelTest 因 copySeed 不存在而编译失败"
+    green: "长按菜单接通复制/删除；复制生成 id=0、默认关闭的草稿并显示删除确认"
+    verify: "复制草稿单测与 compileDebugKotlin 通过"
+    tdd_exception: "Compose 手势需设备观察；当前无 connected device，以纯转换测试和 Compose 编译替代"
+  - step: 7
+    status: done
+    red: "TaskDraftModelTest 因倒计时字段和 buildTask 校验入口不存在而编译失败"
+    green: "编辑页增加模式分段控件、小时/分钟输入、互斥字段和固定时间保留"
+    verify: "TaskDraftModelTest 四个场景与 compileDebugKotlin 通过"
+    tdd_exception: "页面显示切换需设备观察；当前无 connected device，以表单转换单测和 Compose 编译替代"
+  - step: 8
+    status: environment-blocked
+    green: "日志列表展示来源、阶段、状态、reasonCode、退出码，展开后显示命令快照与完整输出"
+    verify:
+      - "gradlew.bat testDebugUnitTest 通过"
+      - "gradlew.bat assembleDebug 通过"
+      - "gradlew.bat connectedDebugAndroidTest 失败：No connected devices"
+    tdd_exception: "小屏、展开交互与截图需要 Android 设备；当前 SDK 无可用设备或 system image"
+  - stage: handoff
+    status: blocked
+    reason: "核心迁移实跑和 UI 截图无法在无 Android 设备环境中判断"
+    next: "提供设备/AVD 后补齐 Step 3/8，再进入 implementation gates、独立 review、QA、acceptance"

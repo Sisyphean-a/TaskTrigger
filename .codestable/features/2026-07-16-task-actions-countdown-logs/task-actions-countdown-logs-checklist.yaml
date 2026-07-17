@@ -1,0 +1,63 @@
+feature: 2026-07-16-task-actions-countdown-logs
+created: 2026-07-16
+
+steps:
+  - action: "拆分任务操作编排与表单转换职责，并建立可替换的存储、调度、命令与时钟接口"
+    exit_signal: "ViewModel、Receiver、BootReceiver 仅调用统一操作服务，旧保存/启停/删除/立即执行 service 测试与现有调度测试通过"
+    status: done
+  - action: "建立固定时间、倒计时、命令结果和日志事件领域契约"
+    exit_signal: "模式互斥、关闭态哨兵、倒计时重算、一次性终态、reasonCode、日志字段不变量和旧日志映射均有单元测试"
+    status: done
+  - action: "启用 Room schema export 并完成 v1 到 v2 的无损数据库迁移"
+    exit_signal: "v1/v2 schema 已提交，Migration 已注册，旧任务、成功/失败日志和孤立日志迁移测试逐字段通过"
+    status: pending
+  - action: "接通保存、启停、删除、开机恢复与定时接收的统一调度编排"
+    exit_signal: "固定时间行为不变，倒计时保存/执行/过期恢复/重新启用符合状态转移，重复投递最多执行一次，日志失败不破坏关停/删除/回退/重排"
+    status: done
+  - action: "记录手动、定时、恢复和用户操作路径的失败、跳过与命令结果"
+    exit_signal: "注册/取消失败、任务缺失/停用/重复/过期、启动异常、超时、非零退出和返回 0 均形成 reasonCode 明确的日志，超时保留部分输出"
+    status: done
+  - action: "增加首页任务行长按菜单、关闭态复制草稿和删除确认"
+    exit_signal: "短按、长按、开关互不串扰；复制不直接入库，删除确认后任务与闹钟消失"
+    status: done
+  - action: "增加编辑页固定时间/倒计时选择、输入与互斥校验"
+    exit_signal: "两种模式只显示适用字段，小时/分钟范围、关闭态 triggerAt、小于 1 分钟、过期单次、周期冲突和溢出均符合设计"
+    status: done
+  - action: "扩充日志列表与详情并完成小屏、长输出和构建回归"
+    exit_signal: "日志展示来源、阶段、可空退出码、耗时和完整输出，小屏截图及全部核心验证命令均有证据"
+    status: pending
+
+checks:
+  - item: "不实现循环倒计时、后台轮询、破坏性迁移或通用副作用验证（设计 1 节）"
+    source: 范围守护
+    status: pending
+  - item: "固定时间、倒计时、关闭态复制草稿、命令结果与日志事件契约一致（设计 2.1 节）"
+    source: 名词契约
+    status: pending
+  - item: "保存、启停、删除、恢复、重复投递、接收器和立即执行按固定错误顺序记录真实结果（设计 2.2 节）"
+    source: 编排骨架
+    status: pending
+  - item: "首页、编辑页、任务操作、接收器和日志页挂载点可独立卸载（设计 2.3 节）"
+    source: 挂载点
+    status: pending
+  - item: "覆盖长按复制/删除、无损迁移、一次性终态、失败日志、输入错误和系统不可观测边界（设计 3 节）"
+    source: 验收场景
+    status: pending
+
+dod:
+  commands:
+    - id: CMD-001
+      command: "gradlew.bat testDebugUnitTest"
+      core: true
+      failure_handling: document-baseline
+    - id: CMD-002
+      command: "gradlew.bat connectedDebugAndroidTest"
+      core: true
+      failure_handling: document-environment
+    - id: CMD-003
+      command: "gradlew.bat assembleDebug"
+      core: true
+      failure_handling: document-baseline
+  evidence_required: [command_output, migration_evidence, diff_summary, screenshot]
+  cleanliness:
+    debug_output: forbidden

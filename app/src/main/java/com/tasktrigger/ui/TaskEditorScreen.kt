@@ -33,18 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tasktrigger.data.TaskEntity
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-
-internal data class TaskDraft(
-    val name: String,
-    val command: String,
-    val time: String,
-    val repeatDays: String,
-    val useRoot: Boolean,
-)
 
 internal data class EditorCallbacks(
     val onBack: () -> Unit,
@@ -56,6 +44,7 @@ internal data class EditorCallbacks(
 
 private data class EditorContentState(
     val task: TaskEntity?,
+    val isCopy: Boolean,
     val draft: TaskDraft,
     val error: String?,
     val savedTask: TaskEntity?,
@@ -63,16 +52,21 @@ private data class EditorContentState(
 )
 
 @Composable
-internal fun TaskEditorScreen(task: TaskEntity?, callbacks: EditorCallbacks) {
-    val taskKey = task?.id
-    var draft by remember(taskKey) { mutableStateOf(task.toDraft()) }
+internal fun TaskEditorScreen(
+    task: TaskEntity?,
+    callbacks: EditorCallbacks,
+    copySource: TaskEntity? = null,
+) {
+    val taskKey = task?.id ?: copySource?.let { -it.id - 1 }
+    val isCopy = task == null && copySource != null
+    var draft by remember(taskKey) { mutableStateOf((task ?: copySource).toDraft()) }
     var error by remember(taskKey) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(taskKey) { mutableStateOf(false) }
     val savedTask = task?.takeIf { it.id > 0 }
-    val state = EditorContentState(task, draft, error, savedTask) { value ->
-        val triggerAt = parseTriggerAt(value.time)
-        error = validateTaskInput(value, triggerAt)
-        if (error == null) callbacks.onSave(taskEntity(task, value, triggerAt!!))
+    val state = EditorContentState(task, isCopy, draft, error, savedTask) { value ->
+        val result = value.buildTask(task, isCopy, System.currentTimeMillis())
+        error = result.error
+        result.task?.let(callbacks.onSave)
     }
     EditorContent(state, callbacks.copy(onDelete = { confirmDelete = true })) { draft = it }
     if (confirmDelete && savedTask != null) {
@@ -93,7 +87,7 @@ private fun EditorContent(
             .imePadding()
             .verticalScroll(rememberScrollState()),
     ) {
-        EditorTopBar(state.task == null, callbacks.onBack) { state.onSaveDraft(state.draft) }
+        EditorTopBar(state.task == null, state.isCopy, callbacks.onBack) { state.onSaveDraft(state.draft) }
         EditorFields(state.draft, isNew = state.task == null, onDraftChange = onDraftChange)
         if (state.task == null) {
             EditorRootMode(state.draft.useRoot, isNew = true) { onDraftChange(state.draft.copy(useRoot = it)) }
@@ -111,7 +105,7 @@ private fun EditorContent(
 }
 
 @Composable
-private fun EditorTopBar(isNew: Boolean, onBack: () -> Unit, onSave: () -> Unit) {
+private fun EditorTopBar(isNew: Boolean, isCopy: Boolean, onBack: () -> Unit, onSave: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -123,7 +117,8 @@ private fun EditorTopBar(isNew: Boolean, onBack: () -> Unit, onSave: () -> Unit)
             TaskIcon(Icons.AutoMirrored.Outlined.ArrowBack, "返回", modifier = Modifier.width(22.dp))
         }
         Spacer(Modifier.width(12.dp))
-        Text(if (isNew) "新建任务" else "编辑任务", color = TaskText, fontSize = 18.sp)
+        val title = if (isCopy) "复制任务" else if (isNew) "新建任务" else "编辑任务"
+        Text(title, color = TaskText, fontSize = 18.sp)
         Spacer(Modifier.weight(1f))
         Text("保存", color = TaskAccent, fontSize = 16.sp, modifier = Modifier.clickable(onClick = onSave))
     }
@@ -167,7 +162,11 @@ private fun EditorTaskActions(task: TaskEntity?, callbacks: EditorCallbacks) {
 private fun EditorSaveButton(state: EditorContentState) {
     Box(modifier = Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 16.dp, vertical = 12.dp)) {
         TaskSaveButton(
-            text = if (state.task == null) "保存并启用" else "保存修改",
+            text = when {
+                state.isCopy -> "保存副本"
+                state.task == null -> "保存并启用"
+                else -> "保存修改"
+            },
             onClick = { state.onSaveDraft(state.draft) },
             modifier = Modifier.fillMaxWidth().height(52.dp),
         )
@@ -211,36 +210,3 @@ private fun DeleteConfirmation(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 }
 
 private fun Set<Int>.toggle(day: Int): Set<Int> = if (day in this) this - day else this + day
-
-private fun TaskEntity?.toDraft(): TaskDraft = TaskDraft(
-    name = this?.name.orEmpty(),
-    command = this?.command.orEmpty(),
-    time = editorTime(this),
-    repeatDays = this?.repeatDays.orEmpty(),
-    useRoot = this?.useRoot ?: false,
-)
-
-private fun taskEntity(task: TaskEntity?, draft: TaskDraft, triggerAt: Long): TaskEntity = TaskEntity(
-    id = task?.id ?: 0,
-    name = draft.name.trim(),
-    command = draft.command.trim(),
-    triggerAt = triggerAt,
-    repeatDays = draft.repeatDays.trim(),
-    enabled = task?.enabled ?: true,
-    useRoot = draft.useRoot,
-)
-
-private fun parseTriggerAt(time: String): Long? = try {
-    LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-} catch (_: DateTimeParseException) {
-    null
-}
-
-private fun validateTaskInput(draft: TaskDraft, triggerAt: Long?): String? = when {
-    draft.name.isBlank() -> "请输入任务名称"
-    draft.command.isBlank() -> "请输入执行命令"
-    triggerAt == null -> "执行时间格式无效"
-    draft.repeatDays.isNotBlank() && draft.repeatDays.split(',').any { it.toIntOrNull() !in 1..7 } -> "周期只能填写 1 到 7"
-    else -> null
-}

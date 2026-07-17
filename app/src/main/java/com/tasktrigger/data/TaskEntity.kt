@@ -2,6 +2,7 @@ package com.tasktrigger.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.tasktrigger.domain.ScheduleMode
 
 @Entity(tableName = "tasks")
 data class TaskEntity(
@@ -12,4 +13,6 @@ data class TaskEntity(
     val repeatDays: String = "",
     val enabled: Boolean = true,
     val useRoot: Boolean = false,
+    val scheduleMode: ScheduleMode = ScheduleMode.FIXED,
+    val countdownDurationMillis: Long = 0,
 )
